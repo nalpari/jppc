@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Report{% endblock %}
+
+{% block content %}
+<h2 class="alert-info">📈 Weekly Report</h2>
+
+<p>
+    <strong>Report Period:</strong>
+    {{ period_start | format_datetime }} - {{ period_end | format_datetime }}
+</p>
+
+<h3>📊 Crawl Statistics</h3>
+<table>
+    <tr>
+        <th>Total Crawls</th>
+        <td>{{ crawl_stats.total | default(0) }}</td>
+    </tr>
+    <tr>
+        <th>Successful</th>
+        <td class="alert-success">{{ crawl_stats.successful | default(0) }}</td>
+    </tr>
+    <tr>
+        <th>Failed</th>
+        <td class="alert-danger">{{ crawl_stats.failed | default(0) }}</td>
+    </tr>
+    <tr>
+        <th>Success Rate</th>
+        <td>{{ crawl_stats.success_rate | default(0) }}%</td>
+    </tr>
+</table>
+
+<h3>🏢 Companies Summary</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Company</th>
+            <th>Last Crawl</th>
+            <th>Status</th>
+            <th>Plans</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for company in companies %}
+        <tr>
+            <td>{{ company.name }}</td>
+            <td>{{ company.last_crawl | format_datetime }}</td>
+            <td class="{% if company.status == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+                {{ company.status }}
+            </td>
+            <td>{{ company.plans_count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if price_changes and price_changes | length > 0 %}
+<h3>💰 Price Changes This Week</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Company</th>
+            <th>Plan</th>
+            <th>Field</th>
+            <th>Change</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for change in price_changes %}
+        <tr>
+            <td>{{ change.company_name }}</td>
+            <td>{{ change.plan_name }}</td>
+            <td>{{ change.field }}</td>
+            <td class="{% if change.change_percentage > 0 %}change-positive{% else %}change-negative{% endif %}">
+                {{ change.change_percentage | format_percentage }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>✅ No price changes detected this week.</p>
+{% endif %}
+
+<h3>📋 System Health</h3>
+<ul>
+    <li>Database Status: <span class="alert-success">Healthy</span></li>
+    <li>Scheduler Status: <span class="alert-success">Running</span></li>
+    <li>Last System Check: {{ system_check_time | format_datetime }}</li>
+</ul>
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_url | default('#') }}" class="btn">View Full Dashboard</a>
+</p>
+{% endblock %}

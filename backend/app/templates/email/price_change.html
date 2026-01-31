@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Price Change Detected{% endblock %}
+
+{% block content %}
+<h2 class="alert-warning">📊 Price Change Detected</h2>
+
+<p>Price changes have been detected for <strong>{{ company_name }}</strong>.</p>
+<p><small>Detected at: {{ crawl_time | format_datetime }}</small></p>
+
+<h3>Changes ({{ change_count }} total)</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Plan</th>
+            <th>Field</th>
+            <th>Old Value</th>
+            <th>New Value</th>
+            <th>Change</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for change in changes %}
+        <tr>
+            <td>{{ change.plan_name }}</td>
+            <td>{{ change.field }}</td>
+            <td>
+                {% if change.old_value is number %}
+                    {{ change.old_value | format_currency }}
+                {% else %}
+                    {{ change.old_value | default('-') }}
+                {% endif %}
+            </td>
+            <td>
+                {% if change.new_value is number %}
+                    {{ change.new_value | format_currency }}
+                {% else %}
+                    {{ change.new_value | default('-') }}
+                {% endif %}
+            </td>
+            <td class="{% if change.change_percentage and change.change_percentage > 0 %}change-positive{% elif change.change_percentage and change.change_percentage < 0 %}change-negative{% endif %}">
+                {{ change.change_percentage | format_percentage }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Summary</h3>
+<ul>
+    {% set increases = changes | selectattr('change_percentage', 'defined') | selectattr('change_percentage', 'gt', 0) | list %}
+    {% set decreases = changes | selectattr('change_percentage', 'defined') | selectattr('change_percentage', 'lt', 0) | list %}
+    <li>Price Increases: <span class="change-positive">{{ increases | length }}</span></li>
+    <li>Price Decreases: <span class="change-negative">{{ decreases | length }}</span></li>
+</ul>
+
+<p style="text-align: center;">
+    <a href="{{ prices_url | default('#') }}" class="btn">View Price Details</a>
+</p>
+{% endblock %}

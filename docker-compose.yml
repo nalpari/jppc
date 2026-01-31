@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: jppc-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jppc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jppc_password}
+      POSTGRES_DB: ${POSTGRES_DB:-jppc_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jppc} -d ${POSTGRES_DB:-jppc_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jppc-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: jppc-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-jppc}:${POSTGRES_PASSWORD:-jppc_password}@db:5432/${POSTGRES_DB:-jppc_db}
+      - DATABASE_URL_SYNC=postgresql://${POSTGRES_USER:-jppc}:${POSTGRES_PASSWORD:-jppc_password}@db:5432/${POSTGRES_DB:-jppc_db}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@jppc.local}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8080:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - jppc-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: jppc-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - jppc-network
+
+volumes:
+  postgres_data:
+
+networks:
+  jppc-network:
+    driver: bridge

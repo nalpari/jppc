@@ -1,0 +1,127 @@
+# Docker Compose configuration for production environment
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: jppc-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-jppc}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      POSTGRES_DB: ${DB_NAME:-jppc}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backup:/backup:rw
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-jppc} -d ${DB_NAME:-jppc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jppc-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: jppc-backend-prod
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-jppc}:${DB_PASSWORD}@db:5432/${DB_NAME:-jppc}
+      SECRET_KEY: ${SECRET_KEY:?Secret key is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - crawl_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - jppc-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+
+  # Frontend Web Server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: jppc-frontend-prod
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${API_URL:-http://backend:8000}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - jppc-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: jppc-nginx-prod
+    restart: always
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - jppc-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  jppc-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  crawl_logs:
+    driver: local
+  nginx_cache:
+    driver: local

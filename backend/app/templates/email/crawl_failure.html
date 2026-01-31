@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Crawl Failure Alert{% endblock %}
+
+{% block content %}
+<h2 class="alert-danger">⚠️ Crawl Failure Alert</h2>
+
+<p>A crawl operation has failed. Please check the system.</p>
+
+<table>
+    <tr>
+        <th>Company</th>
+        <td><strong>{{ company_name }}</strong></td>
+    </tr>
+    <tr>
+        <th>Time</th>
+        <td>{{ crawl_time | format_datetime }}</td>
+    </tr>
+    {% if job_id %}
+    <tr>
+        <th>Job ID</th>
+        <td><code>{{ job_id }}</code></td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Error</th>
+        <td style="color: #dc3545;">{{ error_message }}</td>
+    </tr>
+</table>
+
+<h3>Recommended Actions</h3>
+<ul>
+    <li>Check if the target website is accessible</li>
+    <li>Verify the crawler selectors are still valid</li>
+    <li>Review the application logs for more details</li>
+    <li>Consider running a manual crawl to verify the issue</li>
+</ul>
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_url | default('#') }}" class="btn">View Dashboard</a>
+</p>
+{% endblock %}
