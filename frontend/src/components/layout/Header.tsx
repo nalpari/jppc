@@ -58,7 +58,7 @@ export function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
         {/* Status badges */}
         <div className="hidden items-center gap-2 md:flex">
           <Badge variant="success" className="gap-1">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <span className="h-2 w-2 rounded-full bg-yellow-500" />
             System OK
           </Badge>
         </div>
