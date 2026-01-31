@@ -10,7 +10,7 @@
 - **요금 비교**: 여러 전력회사의 요금을 사용량 기반으로 비교 분석
 - **변동 추적**: 요금 변경 이력을 추적하고 시각화
 - **알림 시스템**: 크롤링 실패, 요금 변경 시 이메일 알림
-- **스케줄링**: 주 1회 자동 크롤링 스케줄 설정
+- **대시보드**: 전체 현황 요약 및 통계 시각화
 
 ---
 
@@ -18,23 +18,27 @@
 
 ### Backend
 - **Python 3.12+** - 메인 언어
-- **FastAPI** - 비동기 REST API
-- **Playwright** - 웹 크롤링
-- **SQLAlchemy 2.0** - 비동기 ORM
+- **FastAPI 0.109+** - 비동기 REST API
+- **Playwright 1.41+** - 웹 크롤링
+- **SQLAlchemy 2.0+** - 비동기 ORM (asyncpg)
 - **PostgreSQL 16** - 데이터베이스
-- **APScheduler** - 작업 스케줄링
-- **aiosmtplib** - 이메일 발송
+- **Alembic** - DB 마이그레이션
+- **Pydantic 2.6+** - 데이터 검증
+- **aiosmtplib** - 비동기 이메일 발송
+- **Tenacity** - 재시도 로직
 
 ### Frontend
-- **Next.js 14+** - React 프레임워크
-- **TypeScript** - 타입 안전성
-- **TailwindCSS** - 스타일링
-- **React Query** - 서버 상태 관리
-- **Recharts** - 차트 라이브러리
+- **Next.js 14.1+** - React 프레임워크 (App Router)
+- **TypeScript 5.9+** - 타입 안전성
+- **TailwindCSS 3.4+** - 스타일링
+- **Radix UI** - 접근성 기반 UI 컴포넌트
+- **TanStack Query 5.20+** - 서버 상태 관리
+- **Recharts 2.12+** - 차트 라이브러리
+- **Axios** - HTTP 클라이언트
 
 ### Infrastructure
 - **Docker & Docker Compose** - 컨테이너화
-- **Nginx** - 리버스 프록시
+- **Nginx** - 리버스 프록시 (프로덕션)
 
 ---
 
@@ -64,14 +68,15 @@ docker compose up -d
 docker compose logs -f
 ```
 
-### 접속 URL
+### 접속 URL (개발 환경)
 
 | 서비스 | URL |
 |--------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
-| API Docs (Swagger) | http://localhost:8000/docs |
-| API Docs (ReDoc) | http://localhost:8000/redoc |
+| Frontend | http://localhost:3001 |
+| Backend API | http://localhost:8080 |
+| API Docs (Swagger) | http://localhost:8080/docs |
+| API Docs (ReDoc) | http://localhost:8080/redoc |
+| PostgreSQL | localhost:5432 |
 
 ---
 
@@ -79,48 +84,52 @@ docker compose logs -f
 
 ```
 jppc/
-├── backend/                # Backend 서비스
+├── backend/                  # Backend 서비스
 │   ├── app/
-│   │   ├── api/           # API 엔드포인트
-│   │   ├── crawlers/      # 전력회사별 크롤러
-│   │   ├── models/        # SQLAlchemy 모델
-│   │   ├── schemas/       # Pydantic 스키마
-│   │   ├── services/      # 비즈니스 로직
-│   │   └── templates/     # 이메일 템플릿
-│   ├── alembic/           # DB 마이그레이션
-│   └── tests/             # 테스트 코드
+│   │   ├── api/v1/          # REST API 엔드포인트
+│   │   ├── crawlers/        # 전력회사별 Playwright 크롤러
+│   │   ├── db/              # 데이터베이스 유틸리티
+│   │   │   └── repositories/ # Repository 패턴 구현
+│   │   ├── models/          # SQLAlchemy ORM 모델
+│   │   ├── schemas/         # Pydantic 요청/응답 스키마
+│   │   ├── services/        # 비즈니스 로직 레이어
+│   │   ├── templates/email/ # 이메일 알림 템플릿
+│   │   ├── utils/           # 로깅 및 헬퍼 유틸리티
+│   │   ├── config.py        # Pydantic 설정 관리
+│   │   └── main.py          # FastAPI 엔트리포인트
+│   ├── alembic/             # DB 마이그레이션
+│   ├── tests/               # pytest 테스트
+│   ├── pyproject.toml       # Python 프로젝트 설정
+│   └── Dockerfile           # 멀티스테이지 Docker 빌드
 │
-├── frontend/              # Frontend 서비스
+├── frontend/                # Frontend 서비스
 │   ├── src/
-│   │   ├── app/          # Next.js App Router 페이지
-│   │   ├── components/   # React 컴포넌트
-│   │   ├── hooks/        # React Query 커스텀 훅
-│   │   └── lib/          # API 클라이언트 및 유틸리티
-│   └── public/
+│   │   ├── app/            # Next.js App Router 페이지
+│   │   ├── components/     # React 컴포넌트 (도메인별 구성)
+│   │   │   └── ui/         # Radix UI 기반 공통 컴포넌트
+│   │   ├── hooks/          # React Query 커스텀 훅
+│   │   ├── lib/            # API 클라이언트 및 유틸리티
+│   │   └── types/          # TypeScript 타입 정의
+│   ├── public/
+│   └── Dockerfile          # 멀티스테이지 Docker 빌드
 │
-├── nginx/                 # Nginx 설정
-├── docs/                  # 문서
-│   ├── PRD.md            # 요구사항 정의서
-│   ├── PLAN.md           # 구현 계획서
-│   ├── api-spec.md       # API 명세서
-│   ├── database-schema.md # DB 스키마
-│   └── deployment.md     # 배포 가이드
-│
-├── docker-compose.yml     # 개발 환경
-├── docker-compose.prod.yml # 프로덕션 환경
-└── .env.example           # 환경 변수 템플릿
+├── nginx/                   # Nginx 리버스 프록시 설정
+├── docs/                    # 프로젝트 문서
+├── docker-compose.yml       # 개발 환경
+├── docker-compose.prod.yml  # 프로덕션 환경
+└── .env.example             # 환경 변수 템플릿
 ```
 
 ---
 
 ## 📊 지원 전력회사
 
-| 회사 | 코드 | 지역 | 웹사이트 |
-|------|------|------|----------|
-| 도쿄전력 (TEPCO) | tepco | 관동 | https://www.tepco.co.jp |
-| 츄부전력 | chubu | 중부 | https://www.chuden.co.jp |
-| 칸사이전력 (KEPCO) | kepco | 관서 | https://www.kepco.co.jp |
-| 츄고쿠전력 | chugoku | 중국 | https://www.energia.co.jp |
+| 회사 | 일본어명 | 코드 | 지역 | 크롤링 URL |
+|------|----------|------|------|-----------|
+| 도쿄전력 | 東京電力 (TEPCO) | tepco | 관동 | https://www.tepco.co.jp/ |
+| 츄부전력 | 中部電力 | chubu | 중부 | https://miraiz.chuden.co.jp/ |
+| 칸사이전력 | 関西電力 (KEPCO) | kepco | 관서 | https://kepco.jp/ |
+| 츄고쿠전력 | 中国電力 | chugoku | 중국 | https://www.energia-support.com/ |
 
 ---
 
@@ -131,41 +140,51 @@ jppc/
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | GET | `/api/v1/companies` | 전력회사 목록 |
+| GET | `/api/v1/companies/{id}` | 전력회사 상세 |
 | GET | `/api/v1/prices` | 요금 정보 목록 |
+| GET | `/api/v1/prices/{id}` | 요금 상세 |
 | POST | `/api/v1/prices/compare` | 요금 비교 |
 | POST | `/api/v1/crawling/start` | 크롤링 시작 |
 | GET | `/api/v1/crawling/status` | 크롤링 상태 |
+| GET | `/api/v1/crawling/logs` | 크롤링 이력 |
 | GET | `/api/v1/stats/dashboard` | 대시보드 통계 |
+| GET | `/api/v1/alerts` | 알림 설정 조회 |
+| POST | `/api/v1/alerts` | 알림 설정 생성 |
 
-자세한 API 명세는 [API 문서](docs/api-spec.md)를 참조하세요.
+자세한 API 명세는 [API 문서](docs/api-spec.md) 또는 http://localhost:8080/docs (Swagger UI)를 참조하세요.
 
 ---
 
 ## ⚙️ 환경 변수
 
-### 필수 설정
+### 데이터베이스 설정
 
 ```bash
-# 데이터베이스
-DB_USER=jppc
-DB_PASSWORD=your_password
-DB_NAME=jppc
-
-# 보안
-SECRET_KEY=your_secret_key
+POSTGRES_USER=jppc
+POSTGRES_PASSWORD=jppc_password
+POSTGRES_DB=jppc_db
 ```
 
-### 선택 설정
+### Backend 설정
 
 ```bash
-# 이메일 알림 (SMTP)
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+```
+
+### 이메일 알림 (SMTP) - 선택
+
+```bash
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your_email
-SMTP_PASSWORD=your_app_password
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@jppc.local
+```
 
-# CORS
-CORS_ORIGINS=http://localhost:3000
+### Frontend 설정
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 ---
@@ -179,8 +198,54 @@ docker compose exec backend pytest
 # 커버리지 포함
 docker compose exec backend pytest --cov=app
 
+# 특정 테스트 파일 실행
+docker compose exec backend pytest tests/test_api/test_companies.py
+
 # E2E 테스트
 docker compose exec backend pytest tests/test_e2e/
+```
+
+---
+
+## 🔧 개발 도구
+
+### Backend 코드 품질
+
+```bash
+# 타입 체크
+docker compose exec backend mypy app
+
+# 린트
+docker compose exec backend ruff check app
+
+# 포매팅
+docker compose exec backend black app
+
+# 린트 자동 수정
+docker compose exec backend ruff check app --fix
+```
+
+### Frontend 코드 품질
+
+```bash
+# 린트
+docker compose exec frontend npm run lint
+
+# 타입 체크
+docker compose exec frontend npm run type-check
+```
+
+### 데이터베이스 마이그레이션
+
+```bash
+# 마이그레이션 적용
+docker compose exec backend alembic upgrade head
+
+# 새 마이그레이션 생성
+docker compose exec backend alembic revision --autogenerate -m "설명"
+
+# 마이그레이션 롤백
+docker compose exec backend alembic downgrade -1
 ```
 
 ---
