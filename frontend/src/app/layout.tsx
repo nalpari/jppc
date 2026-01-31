@@ -1,14 +1,14 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { MainLayout } from '@/components/layout';
-import { QueryProvider } from '@/components/providers';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { MainLayout } from "@/components/layout";
+import { QueryProvider } from "@/components/providers";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'JPPC - Japan Power Price Crawler',
-  description: '일본 주요 전력회사 요금 정보 자동 수집 시스템',
+  title: "JPPC - Japan Power Price Crawler",
+  description: "일본 주요 전력회사 요금 정보 자동 수집 시스템",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" className="dark" suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
           <MainLayout>{children}</MainLayout>
