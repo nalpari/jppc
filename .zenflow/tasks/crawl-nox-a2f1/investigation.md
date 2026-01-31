@@ -161,8 +161,17 @@ API 엔드포인트에서 직접 크롤러를 호출하는 방식.
 ### Test Results
 
 - **Syntax check**: PASSED (`python -m py_compile`)
-- **Import test**: Could not run (FastAPI not installed in test environment)
-- **Docker environment**: Not tested locally
+- **Docker build**: PASSED (after adding `jinja2>=3.1.0` to requirements.txt)
+- **API test - Status**: PASSED (`GET /api/v1/crawling/status` returns `is_running: false`)
+- **API test - Start Crawl**: PASSED (`POST /api/v1/crawling/start` returns `crawl_id: 1, status: pending`)
+- **Crawl Execution**: VERIFIED - Logs show crawlers executing:
+  - TEPCO: 3 plans found in 6.4s
+  - Chubu: Running
+  - Progress tracking working (`is_running: true, current_company: tepco`)
+
+**Known Issues**:
+- `PricePlan` model has field mismatch with `CrawlService._save_price_plan()` (`plan_name` vs correct field name)
+- This is a separate model compatibility issue, not related to the crawl trigger fix
 
 ### How to Verify the Fix
 
