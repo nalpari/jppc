@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -33,12 +33,11 @@ import { useCrawlLogs } from "@/hooks/useCrawling";
 import { Company } from "@/types";
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function CompanyDetailPage({ params }: PageProps) {
-  const { id } = use(params);
-  const companyId = parseInt(id, 10);
+  const companyId = parseInt(params.id, 10);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const { data: company, isLoading: companyLoading, error: companyError } = useCompany(companyId);
